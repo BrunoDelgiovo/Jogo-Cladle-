@@ -1,0 +1,29 @@
+.autocomplete {
+    position: relative;
+    width: 320px;
+}
+
+.suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+
+    border: 1px solid #ccc;
+    background: white;
+    max-height: 220px;
+
+    display: none;
+}
+
+.suggestion-item {
+  padding: 8px 10px;
+  cursor: pointer;
+  margin: 0px;
+  width: 100%;
+}
+
+.suggestion-item:hover,.suggestion-item:focus {
+  background: #ccc;
+  width: 100%;
+}
