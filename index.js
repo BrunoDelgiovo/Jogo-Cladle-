@@ -1,154 +1,225 @@
 import { Metazoa } from "./metazoa.js";
 
-const speciesList = Object.entries(Metazoa).map(([key, obj]) => ({
+/* =========================
+    Misc
+========================= */
+
+function getRandomSpeciesKey() {
+  const keys = Object.keys(Metazoa);
+  const i = Math.floor(Math.random() * keys.length);
+  return keys[i];
+}
+
+function findCommonClade(speciesKeyA, speciesKeyB) {
+  const pathA = Metazoa[speciesKeyA].cladeList;
+  const setB = new Set(Metazoa[speciesKeyB].cladeList);
+
+  for (const clade of pathA) {
+    if (setB.has(clade)) return clade;
+  }
+  return null;
+}
+
+/* =========================
+   Estado do jogo 
+========================= */
+
+const gameState = {
+  // --- dataset indexado para autocomplete ---
+  speciesIndex: Object.entries(Metazoa).map(([key, obj]) => ({
     key,
     name: obj.name,
-    nameLower: obj.name.toLowerCase()
-}));
-const suggestionsBox = document.getElementById("speciesSuggestions");
-const input = document.getElementById("speciesA");
-const button = document.getElementById("guessBtn")
-const result = document.getElementById("comparisonResult");
-const secretSpecies = document.getElementById("secretSpecies")
+    nameLower: obj.name.toLowerCase(),
+  })),
 
-const theRandomSpecies = randomSpecies();
-secretSpecies.textContent = theRandomSpecies;
-//INPUT DA ESPECIE
-//-------------------------------------------
+  // --- rodada atual ---
+  secretKey: null,
+  lastGuessKey: null,
+  lastCommonCladeId: null,
 
-input.addEventListener("input", () => {
-    const text = input.value.trim().toLowerCase();
+  // --- árvore da partida ---
+  root: {
+    id: "Metazoa",
+    level: 0,
+    children: [],
+  },
 
-    input.dataset.selectedKey = "";
 
-    if (text == "") {
-        hideSuggestions();
-        return;
-    }
+  secretMarker: {
+    id: "Secret",
+    level: 0,
+    children: [],
+  },
+  secretParent: null,
+  bestCommonLevel: -1,
+};
 
-    const matches = getMatches(text);
-    renderSuggestions(matches);
-})
-//-------------------------------------------
+/* =========================
+   DOM refs
+========================= */
 
-//CLICK DO BOTAO
-//-------------------------------------------
-button.addEventListener("click", () => {
-  let selectedKey = input.dataset.selectedKey;
+const dom = {
+  input: document.getElementById("speciesA"),
+  suggestionsBox: document.getElementById("speciesSuggestions"),
+  guessBtn: document.getElementById("guessBtn"),
+  resultText: document.getElementById("comparisonResult"),
+  secretText: document.getElementById("secretSpecies"),
+  treeContainer: document.getElementById("tree"),
+  autocompleteWrapper: document.querySelector(".autocomplete"),
+};
 
-  if (!selectedKey) {
-    const typed = input.value.trim().toLowerCase();
-    const match = speciesList.find(
-      s => s.nameLower === typed
-    );
-    if (match) {
-      selectedKey = match.key;
-    }
-  }
+/* =========================
+   Setup inicial
+========================= */
 
-  if (!selectedKey || !Metazoa[selectedKey]) {
-    result.textContent = "Species not found.";
+gameState.secretKey = getRandomSpeciesKey();
+dom.secretText.textContent = gameState.secretKey;
+
+/* =========================
+   Autocomplete
+========================= */
+
+dom.input.addEventListener("input", () => {
+  const typed = dom.input.value.trim().toLowerCase();
+
+  dom.input.dataset.selectedKey = "";
+
+  if (typed === "") {
+    hideSuggestions();
     return;
   }
 
-  const clade = commonClade(selectedKey, theRandomSpecies);
-  result.textContent = `Common clade: ${clade}`;
+  const matches = getNameMatches(typed, gameState.speciesIndex);
+  renderSuggestions(matches);
 });
-//-------------------------------------------
 
-function getMatches(text) {
-    const word = text.toLowerCase();
+dom.guessBtn.addEventListener("click", () => {
+  const guessKey = resolveGuessKey();
 
-    return speciesList
-        .filter(k => k.nameLower.startsWith(word))
-        .slice(0, 12);
+  if (!guessKey || !Metazoa[guessKey]) {
+    dom.resultText.textContent = "Species not found.";
+    return;
+  }
+
+  gameState.lastGuessKey = guessKey;
+  gameState.lastCommonCladeId = findCommonClade(guessKey, gameState.secretKey);
+
+  dom.resultText.textContent = `Common clade: ${gameState.lastCommonCladeId ?? "None"}`;
+
+  updateGameTreeWithGuess(guessKey);
+
+  renderTree(gameState.root);
+});
+
+document.addEventListener("click", (e) => {
+  if (!dom.autocompleteWrapper.contains(e.target)) {
+    hideSuggestions();
+  }
+});
+
+function getNameMatches(typedLower, speciesIndex) {
+  return speciesIndex
+    .filter((s) => s.nameLower.startsWith(typedLower))
+    .slice(0, 12);
 }
 
 function renderSuggestions(matches) {
-    suggestionsBox.innerHTML = "";
+  dom.suggestionsBox.innerHTML = "";
 
-    if (matches.length === 0) {
-        hideSuggestions();
-        return;
-    }
+  if (matches.length === 0) {
+    hideSuggestions();
+    return;
+  }
 
-    for (const s of matches) {
-        const item = document.createElement("button");
-        item.className = "suggestion-item";
-        item.textContent = s.name;
+  for (const species of matches) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "suggestion-item";
+    btn.textContent = species.name;
 
-        item.addEventListener("click", () => {
-            selectSuggestion(s);
-        });
+    btn.addEventListener("click", () => selectSuggestion(species));
+    dom.suggestionsBox.appendChild(btn);
+  }
 
-        suggestionsBox.appendChild(item);
-    }
-
-    suggestionsBox.style.display = "block";
+  dom.suggestionsBox.style.display = "block";
 }
 
 function selectSuggestion(species) {
-    input.value = species.name;
-    input.dataset.selectedKey = species.key;
-    hideSuggestions();
+  dom.input.value = species.name;
+  dom.input.dataset.selectedKey = species.key;
+  hideSuggestions();
 }
 
 function hideSuggestions() {
-    suggestionsBox.style.display = "none";
-    suggestionsBox.innerHTML = "";
+  dom.suggestionsBox.style.display = "none";
+  dom.suggestionsBox.innerHTML = "";
 }
 
-document.addEventListener("click", (e) => {
-    const wrapper = document.querySelector(".autocomplete");
-    if (!wrapper.contains(e.target)) {
-        hideSuggestions();
+function resolveGuessKey() {
+  const selectedKey = dom.input.dataset.selectedKey;
+  if (selectedKey) return selectedKey;
+
+  const typed = dom.input.value.trim().toLowerCase();
+  const match = gameState.speciesIndex.find((s) => s.nameLower === typed);
+  return match ? match.key : null;
+}
+
+/* =========================
+   Árvore da partida 
+========================= */
+
+// Insere caminho do chute na árvore da partida.
+// (aqui não mexo no Secret ainda — só organizo a base)
+function updateGameTreeWithGuess(guessKey) {
+  // caminho do dataset é "mais baixo -> mais alto"; pra árvore, queremos "alto -> baixo"
+  const pathTopDown = [...Metazoa[guessKey].cladeList].reverse();
+
+  // Garante que começa no root ("Metazoa") ou pelo menos não cria "Metazoa" embaixo de Metazoa
+  insertPathIntoTree(gameState.root, pathTopDown);
+}
+
+// Inserção usando índice (mais fácil de manter do que shift)
+function insertPathIntoTree(rootNode, pathTopDown) {
+  let current = rootNode;
+
+  // se o path começa com o root, pule o primeiro item
+  let startIndex = 0;
+  if (pathTopDown[0] === current.id) startIndex = 1;
+
+  for (let i = startIndex; i < pathTopDown.length; i++) {
+    const nextId = pathTopDown[i];
+
+    let child = current.children.find((c) => c.id === nextId);
+    if (!child) {
+      child = {
+        id: nextId,
+        level: current.level + 1,
+        children: [],
+      };
+      current.children.push(child);
     }
-});
+    current = child;
+  }
 
-
-function commonClade(speciesKeyA, speciesKeyB) {
-    const speciesA = Metazoa[speciesKeyA].cladeList;
-    const speciesB = new Set(Metazoa[speciesKeyB].cladeList);
-
-    for (const clade of speciesA)
-        if (speciesB.has(clade))
-            return clade;
+  return current;
 }
 
-function randomSpecies() {
-    const speciesArray = Object.keys(Metazoa);
-    var randomNumber = Math.floor(Math.random() * speciesArray.length);
+/* =========================
+   Renderização da árvore (recursiva)
+========================= */
 
-    return speciesArray[randomNumber];
+function renderTree(rootNode) {
+  dom.treeContainer.innerHTML = "";
+  renderNodeRecursive(rootNode, 0);
 }
 
-// logica da arvore
-const buttonb = document.getElementById("buttonB");
-const container = document.getElementById("tree");
+function renderNodeRecursive(node, depth) {
+  const line = document.createElement("div");
+  line.textContent = node.id;
+  line.style.marginLeft = `${depth * 20}px`;
+  dom.treeContainer.appendChild(line);
 
-const nodes = [
-  { text: "Metazoa", level: 0 },
-  { text: "Bilateria", level: 1 },
-  { text: "Chordata", level: 2 },
-  { text: "Vertebrata", level: 3 }
-];
-
-function render(array){
-
-    container.innerHTML = "";
-    for(let node of array){
-        const div = document.createElement("div");
-        div.textContent = node.text;
-        div.style.marginLeft = node.level * 20 + "px";
-        tree.appendChild(div);
-    }
-
-
+  for (const child of node.children) {
+    renderNodeRecursive(child, depth + 1);
+  }
 }
-
-
-buttonb.addEventListener("click", () => {
-  render(nodes);
-});
-
-
