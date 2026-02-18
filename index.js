@@ -1,4 +1,4 @@
-import { Metazoa } from "./metazoa.js";
+import { Metazoa, Wiki } from "./metazoa.js";
 
 /* =========================
     Misc
@@ -36,13 +36,21 @@ const gameState = {
   secretKey: null,
   lastGuessKey: null,
   lastCommonCladeId: null,
+  guessesLeft: 10,
+  over: 0,
 
-  // --- árvore da partida ---
+  // --- árvore  ---
   root: {
     id: "Metazoa",
     level: 0,
     children: [],
   },
+
+  // --- wiki ---
+  wiki: {
+  cache: new Map(),   
+  currentTitle: null,
+    },
 
 
   secretMarker: {
@@ -66,6 +74,14 @@ const dom = {
   secretText: document.getElementById("secretSpecies"),
   treeContainer: document.getElementById("tree"),
   autocompleteWrapper: document.querySelector(".autocomplete"),
+  wonText: document.getElementById("won"),
+  guessesText: document.getElementById("guesses"),
+  wikiPanel: document.getElementById("wikiPanel"),
+  wikiTitle: document.getElementById("wikiTitle"),
+  wikiImg: document.getElementById("wikiImg"),
+  wikiExtract: document.getElementById("wikiExtract"),
+  wikiLink: document.getElementById("wikiLink")
+
 };
 
 /* =========================
@@ -74,6 +90,7 @@ const dom = {
 
 gameState.secretKey = getRandomSpeciesKey();
 dom.secretText.textContent = gameState.secretKey;
+dom.guessesText.textContent = gameState.guessesLeft;
 
 /* =========================
    Autocomplete
@@ -94,6 +111,10 @@ dom.input.addEventListener("input", () => {
 });
 
 dom.guessBtn.addEventListener("click", () => {
+    if(gameState.over){
+        dom.wonText.textContent = "The game is over";
+        return;
+    }
   const guessKey = resolveGuessKey();
 
   if (!guessKey || !Metazoa[guessKey]) {
@@ -108,7 +129,7 @@ dom.guessBtn.addEventListener("click", () => {
 
   updateGameTreeWithGuess(guessKey);
 
-  renderTree(gameState.root);
+  renderTree(gameState.root, gameState);
 });
 
 document.addEventListener("click", (e) => {
@@ -168,27 +189,23 @@ function resolveGuessKey() {
    Árvore da partida 
 ========================= */
 
-// Insere caminho do chute na árvore da partida.
-// (aqui não mexo no Secret ainda — só organizo a base)
 function updateGameTreeWithGuess(guessKey) {
-  // caminho do dataset é "mais baixo -> mais alto"; pra árvore, queremos "alto -> baixo"
   const pathTopDown = [...Metazoa[guessKey].cladeList].reverse();
 
-  // Garante que começa no root ("Metazoa") ou pelo menos não cria "Metazoa" embaixo de Metazoa
   insertPathIntoTree(gameState.root, pathTopDown);
 }
 
-// Inserção usando índice (mais fácil de manter do que shift)
 function insertPathIntoTree(rootNode, pathTopDown) {
   let current = rootNode;
 
-  // se o path começa com o root, pule o primeiro item
+
   let startIndex = 0;
   if (pathTopDown[0] === current.id) startIndex = 1;
 
   for (let i = startIndex; i < pathTopDown.length; i++) {
     const nextId = pathTopDown[i];
-
+    
+    
     let child = current.children.find((c) => c.id === nextId);
     if (!child) {
       child = {
@@ -199,6 +216,19 @@ function insertPathIntoTree(rootNode, pathTopDown) {
       current.children.push(child);
     }
     current = child;
+    if(current.id == gameState.lastCommonCladeId && current.level > gameState.bestCommonLevel){
+        if(gameState.secretParent)
+        {
+            gameState.secretParent.children = gameState.secretParent.children.filter(
+        c => c.id !== "Secret");
+        }
+        
+        gameState.secretParent = current;
+    
+        gameState.secretMarker.level = current.level + 1;
+        gameState.bestCommonLevel = current.level;
+        current.children.push(gameState.secretMarker)
+    }
   }
 
   return current;
@@ -208,18 +238,123 @@ function insertPathIntoTree(rootNode, pathTopDown) {
    Renderização da árvore (recursiva)
 ========================= */
 
-function renderTree(rootNode) {
+function renderTree(rootNode, gameState) {
   dom.treeContainer.innerHTML = "";
+  if(checkIfCorrectAnswer(gameState)){
+    gameState.secretParent.children = gameState.secretParent.children.filter(
+        c => c.id !== "Secret");
+    dom.wonText.textContent =
+    `You got it! The correct answer was: ${Metazoa[gameState.secretKey].name}`;
+    gameState.over = true;
+
+  }
+    gameState.guessesLeft--;
+    dom.guessesText.textContent = gameState.guessesLeft;
+    if (gameState.guessesLeft < 1) 
+        {
+            dom.wonText.textContent =
+    `Failed! You used all of your guesses. The correct answer was: ${Metazoa[gameState.secretKey].name}`;
+            gameState.over = true;
+        }
+
   renderNodeRecursive(rootNode, 0);
 }
 
 function renderNodeRecursive(node, depth) {
   const line = document.createElement("div");
-  line.textContent = node.id;
   line.style.marginLeft = `${depth * 20}px`;
   dom.treeContainer.appendChild(line);
+  const label = document.createElement("span");
+  label.className = "node-label";
+
+  label.textContent = node.id;
+  label.addEventListener("mouseenter", () => showWikiForNode(node.id));
+  line.appendChild(label);
 
   for (const child of node.children) {
     renderNodeRecursive(child, depth + 1);
   }
+}
+
+/* =========================
+   Game functions
+========================= */
+
+function checkIfCorrectAnswer(gameState){
+    if(gameState.lastGuessKey == gameState.secretKey)
+        return true;
+    else
+        return false;
+}
+
+/* ========================
+    Wiki
+==========================*/
+async function showWikiForNode(nodeId) {
+  gameState.wiki.currentId = nodeId;
+
+  const url = Wiki[nodeId];
+  if (!url) {
+    dom.wikiTitle.textContent = nodeId;
+    dom.wikiExtract.textContent = "No Wikipedia link for this node yet.";
+    dom.wikiImg.style.display = "none";
+    dom.wikiLink.style.display = "none";
+    return;
+  }
+
+  const cached = gameState.wiki.cache.get(nodeId);
+  if (cached) {
+    renderWikiPanel(nodeId, cached);
+    return;
+  }
+
+  const titleSlug = getWikiTitleFromUrl(url);
+  if (!titleSlug) return;
+
+  dom.wikiTitle.textContent = nodeId;
+  dom.wikiExtract.textContent = "Loading...";
+  dom.wikiImg.style.display = "none";
+  dom.wikiLink.style.display = "none";
+
+  const apiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${titleSlug}`;
+  const resp = await fetch(apiUrl);
+  if (!resp.ok) {
+    dom.wikiExtract.textContent = "Failed to load Wikipedia summary.";
+    return;
+  }
+
+  const data = await resp.json();
+
+  const info = {
+    extract: data.extract ?? "",
+    thumbnail: data.thumbnail?.source ?? null,
+    pageUrl: data.content_urls?.desktop?.page ?? url,
+  };
+
+  gameState.wiki.cache.set(nodeId, info);
+
+  if (gameState.wiki.currentId !== nodeId) return;
+
+  renderWikiPanel(nodeId, info);
+}
+function renderWikiPanel(nodeId, info) {
+  dom.wikiTitle.textContent = nodeId;
+  dom.wikiExtract.textContent = info.extract || "No summary available.";
+
+  if (info.thumbnail) {
+    dom.wikiImg.src = info.thumbnail;
+    dom.wikiImg.style.display = "block";
+  } else {
+    dom.wikiImg.style.display = "none";
+  }
+
+  dom.wikiLink.href = info.pageUrl;
+  dom.wikiLink.style.display = "inline-block";
+}
+
+
+function getWikiTitleFromUrl(url) {
+  const idx = url.indexOf("/wiki/");
+  if (idx === -1) return null;
+  return url.slice(idx + "/wiki/".length);
 }

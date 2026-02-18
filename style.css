@@ -27,3 +27,30 @@
   background: #ccc;
   width: 100%;
 }
+
+#wikiPanel{
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 320px;
+  max-height: 80vh;
+  overflow: auto;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+#wikiImg{
+  width: 100%;
+  height: auto;
+  display: none;
+  margin: 8px 0;
+}
+
+.node-label{
+  cursor: help;
+}
+.node-label:hover{
+  text-decoration: underline;
+}

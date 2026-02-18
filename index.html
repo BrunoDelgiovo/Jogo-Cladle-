@@ -4,9 +4,13 @@
   <meta charset="UTF-8">
   <title>Cladle</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
 </head>
 
 <body>
+  <div id="won"></div>
+  <div id="guesses"></div>
   <div class="autocomplete">
     <input id="speciesA" placeholder="Write down a species" autocomplete="off">
     <div id="speciesSuggestions" class="suggestions"></div>
@@ -18,6 +22,14 @@
   <script type="module" src="index.js"></script>
 
   <p id="secretSpecies"></p>
+  <aside id="wikiPanel">
+  <h3 id="wikiTitle">Hover a clade</h3>
+  <img id="wikiImg" alt="">
+  <p id="wikiExtract">Move your mouse over a clade name to see its Wikipedia summary.</p>
+  <a id="wikiLink" target="_blank" rel="noopener" style="display:none;">Open on Wikipedia</a>
+</aside>
+
+
 
   <div id="tree"></div>
 
