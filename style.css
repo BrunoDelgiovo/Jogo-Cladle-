@@ -1,56 +1,360 @@
-.autocomplete {
-    position: relative;
-    width: 320px;
+/* =========================
+   Palette:
+   - sand:   #F1EAD8
+   - beige:  #D5C7AD
+   - sage:   #8A8E75
+   - mint:   #BEC5A4
+   - dark:   #68604D
+========================= */
+
+:root{
+  --sand: #F1EAD8;
+  --beige: #D5C7AD;
+  --sage: #8A8E75;
+  --mint: #BEC5A4;
+  --dark: #68604D;
+
+  --card: rgba(255,255,255,0.65);
+  --cardBorder: rgba(104,96,77,0.18);
+  --shadow: 0 10px 30px rgba(104,96,77,0.18);
+
+  --radius: 14px;
+  --radiusSm: 10px;
+
+  --text: #2b2720;
+  --muted: rgba(104,96,77,0.75);
+
+  --focus: rgba(190,197,164,0.9);
 }
 
-.suggestions {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
+*{ box-sizing: border-box; }
 
-    border: 1px solid #ccc;
-    background: white;
-    max-height: 220px;
-
-    display: none;
+html, body{
+  height: 100%;
 }
 
-.suggestion-item {
-  padding: 8px 10px;
+body{
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  color: var(--text);
+
+  background:
+    radial-gradient(1100px 600px at 20% 0%, rgba(190,197,164,0.55), transparent 60%),
+    radial-gradient(900px 500px at 80% 20%, rgba(213,199,173,0.55), transparent 55%),
+    linear-gradient(180deg, var(--sand), #fbf8f0);
+
+  padding: 22px 22px 36px;
+}
+
+/* =========================
+   Top 
+========================= */
+
+#won{
+  font-size: 18px;
+  font-weight: 650;
+  color: var(--dark);
+  margin: 2px 0 10px;
+}
+
+#guesses{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.55);
+  border: 1px solid var(--cardBorder);
+  box-shadow: 0 6px 16px rgba(104,96,77,0.12);
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+#guesses::before{
+  content: "Guesses left:";
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* =========================
+   Autocomplete
+========================= */
+
+.autocomplete{
+  position: relative;
+  width: min(440px, calc(100vw - 420px)); /
+  max-width: 520px;
+
+  z-index: 10000;
+}
+
+#speciesA{
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--cardBorder);
+  background: rgba(255,255,255,0.68);
+  box-shadow: 0 10px 26px rgba(104,96,77,0.10);
+  outline: none;
+  font-size: 16px;
+  color: var(--text);
+  transition: box-shadow .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+#speciesA::placeholder{
+  color: rgba(104,96,77,0.55);
+}
+
+#speciesA:focus{
+  border-color: rgba(104,96,77,0.35);
+  box-shadow: 0 0 0 4px rgba(190,197,164,0.55), 0 12px 30px rgba(104,96,77,0.12);
+  transform: translateY(-1px);
+}
+
+/* suggestions dropdown */
+.suggestions{
+  position: absolute;
+  z-index: 10001; 
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+
+  padding: 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--cardBorder);
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(10px);
+
+  box-shadow: var(--shadow);
+  max-height: 280px;
+  overflow: auto;
+  display: none;
+}
+
+/* botões dentro da lista */
+.suggestion-item{
+  display: block; 
+  width: 100%;    
+  text-align: left;
+
+  padding: 10px 12px;
+  margin: 0;
+  border: 0;
+  border-radius: 10px;
+
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
   cursor: pointer;
-  margin: 0px;
-  width: 100%;
+
+  transition: background .15s ease, transform .12s ease, color .15s ease;
 }
 
-.suggestion-item:hover,.suggestion-item:focus {
-  background: #ccc;
-  width: 100%;
+.suggestion-item:hover{
+  background: rgba(190,197,164,0.55);
+  transform: translateX(2px);
 }
+
+.suggestion-item:focus{
+  outline: none;
+  background: rgba(190,197,164,0.70);
+  box-shadow: 0 0 0 3px rgba(190,197,164,0.55);
+}
+
+/* =========================
+   Guess button 
+======================== */
+
+#guessBtn{
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(104,96,77,0.28);
+  background: linear-gradient(180deg, rgba(213,199,173,0.9), rgba(190,197,164,0.8));
+  color: var(--dark);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(104,96,77,0.14);
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+
+#guessBtn:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow: 0 14px 26px rgba(104,96,77,0.18);
+}
+
+#guessBtn:active{
+  transform: translateY(0px);
+  box-shadow: 0 8px 16px rgba(104,96,77,0.16);
+}
+
+#guessBtn:focus{
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(190,197,164,0.55), 0 14px 26px rgba(104,96,77,0.18);
+}
+
+#comparisonResult{
+  margin-top: 14px;
+  font-size: 15px;
+  color: var(--muted);
+  padding: 10px 12px;
+  width: fit-content;
+  border-radius: 12px;
+  border: 1px solid var(--cardBorder);
+  background: rgba(255,255,255,0.55);
+}
+
+/* =========================
+   Layout árvore painel wiki
+========================= */
+
+#tree{
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--cardBorder);
+  background: rgba(255,255,255,0.45);
+  box-shadow: var(--shadow);
+
+  /* evita o painel "empurrar" o layout */
+  width: calc(100% - 360px);
+  min-height: 360px;
+}
+
+/* SVG */
+#treeSvg{
+  width: 100%;
+  height: 600px;
+  display: block;
+  border-radius: 12px;
+  background: rgba(241,234,216,0.35);
+  border: 1px dashed rgba(104,96,77,0.18);
+
+  /* seu comportamento anterior */
+  touch-action: none;
+}
+
+#treeSvg text{
+  user-select: none;
+}
+
+/* =========================
+   Wiki 
+========================= */
 
 #wikiPanel{
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 22px;
+  right: 22px;
   width: 320px;
-  max-height: 80vh;
+  max-height: calc(100vh - 44px);
   overflow: auto;
-  background: white;
-  border: 1px solid #ccc;
-  padding: 12px;
-  border-radius: 8px;
+
+  padding: 14px 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--cardBorder);
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+}
+
+#wikiTitle{
+  margin: 2px 0 10px;
+  font-size: 18px;
+  color: var(--dark);
+  letter-spacing: 0.2px;
 }
 
 #wikiImg{
   width: 100%;
   height: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(104,96,77,0.18);
   display: none;
-  margin: 8px 0;
+  margin: 8px 0 10px;
 }
 
-.node-label{
-  cursor: help;
+#wikiExtract{
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(43,39,32,0.78);
 }
-.node-label:hover{
-  text-decoration: underline;
+
+#wikiLink{
+  display: inline-block;
+  padding: 9px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(104,96,77,0.25);
+  background: rgba(190,197,164,0.45);
+  color: var(--dark);
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+}
+
+#wikiLink:hover{
+  background: rgba(190,197,164,0.65);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(104,96,77,0.14);
+}
+
+/* =========================
+   D3 Tree 
+========================= */
+
+.link{
+  stroke: rgba(104,96,77,0.55);
+}
+
+.node text{
+  fill: rgba(43,39,32,0.85);
+  user-select: none;
+}
+
+.node circle{
+  fill: rgba(255,255,255,0.92);
+  stroke: rgba(104,96,77,0.70);
+  transition: transform .12s ease, stroke .12s ease, fill .12s ease;
+}
+
+.node:hover circle{
+  stroke: rgba(104,96,77,0.95);
+  fill: rgba(190,197,164,0.70);
+  transform: scale(1.05);
+}
+
+.node:hover text{
+  fill: rgba(104,96,77,1);
+  font-weight: 700;
+}
+
+
+
+@media (max-width: 980px){
+  #wikiPanel{
+    position: static;
+    width: auto;
+    max-height: none;
+    margin-top: 16px;
+  }
+
+  #tree{
+    width: 100%;
+  }
+
+  .autocomplete{
+    width: 100%;
+    max-width: 520px;
+  }
+}
+.node:hover circle {
+  filter: drop-shadow(0 0 6px rgba(138,142,117,0.6));
+  transform: scale(1.08);
+}
+
+.node:hover text {
+  fill: #68604D;
 }

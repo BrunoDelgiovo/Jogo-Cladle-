@@ -5,19 +5,19 @@ import { Metazoa, Wiki } from "./metazoa.js";
 ========================= */
 
 function getRandomSpeciesKey() {
-  const keys = Object.keys(Metazoa);
-  const i = Math.floor(Math.random() * keys.length);
-  return keys[i];
+    const keys = Object.keys(Metazoa);
+    const i = Math.floor(Math.random() * keys.length);
+    return keys[i];
 }
 
 function findCommonClade(speciesKeyA, speciesKeyB) {
-  const pathA = Metazoa[speciesKeyA].cladeList;
-  const setB = new Set(Metazoa[speciesKeyB].cladeList);
+    const pathA = Metazoa[speciesKeyA].cladeList;
+    const setB = new Set(Metazoa[speciesKeyB].cladeList);
 
-  for (const clade of pathA) {
-    if (setB.has(clade)) return clade;
-  }
-  return null;
+    for (const clade of pathA) {
+        if (setB.has(clade)) return clade;
+    }
+    return null;
 }
 
 /* =========================
@@ -25,41 +25,41 @@ function findCommonClade(speciesKeyA, speciesKeyB) {
 ========================= */
 
 const gameState = {
-  // --- dataset indexado para autocomplete ---
-  speciesIndex: Object.entries(Metazoa).map(([key, obj]) => ({
-    key,
-    name: obj.name,
-    nameLower: obj.name.toLowerCase(),
-  })),
+    // --- dataset indexado para autocomplete ---
+    speciesIndex: Object.entries(Metazoa).map(([key, obj]) => ({
+        key,
+        name: obj.name,
+        nameLower: obj.name.toLowerCase(),
+    })),
 
-  // --- rodada atual ---
-  secretKey: null,
-  lastGuessKey: null,
-  lastCommonCladeId: null,
-  guessesLeft: 10,
-  over: 0,
+    // --- rodada atual ---
+    secretKey: null,
+    lastGuessKey: null,
+    lastCommonCladeId: null,
+    guessesLeft: 10,
+    over: 0,
 
-  // --- árvore  ---
-  root: {
-    id: "Metazoa",
-    level: 0,
-    children: [],
-  },
+    // --- árvore  ---
+    root: {
+        id: "Metazoa",
+        level: 0,
+        children: [],
+    },
 
-  // --- wiki ---
-  wiki: {
-  cache: new Map(),   
-  currentTitle: null,
+    // --- wiki ---
+    wiki: {
+        cache: new Map(),
+        currentId: null,
     },
 
 
-  secretMarker: {
-    id: "Secret",
-    level: 0,
-    children: [],
-  },
-  secretParent: null,
-  bestCommonLevel: -1,
+    secretMarker: {
+        id: "Secret",
+        level: 0,
+        children: [],
+    },
+    secretParent: null,
+    bestCommonLevel: -1,
 };
 
 /* =========================
@@ -67,20 +67,19 @@ const gameState = {
 ========================= */
 
 const dom = {
-  input: document.getElementById("speciesA"),
-  suggestionsBox: document.getElementById("speciesSuggestions"),
-  guessBtn: document.getElementById("guessBtn"),
-  resultText: document.getElementById("comparisonResult"),
-  secretText: document.getElementById("secretSpecies"),
-  treeContainer: document.getElementById("tree"),
-  autocompleteWrapper: document.querySelector(".autocomplete"),
-  wonText: document.getElementById("won"),
-  guessesText: document.getElementById("guesses"),
-  wikiPanel: document.getElementById("wikiPanel"),
-  wikiTitle: document.getElementById("wikiTitle"),
-  wikiImg: document.getElementById("wikiImg"),
-  wikiExtract: document.getElementById("wikiExtract"),
-  wikiLink: document.getElementById("wikiLink")
+    input: document.getElementById("speciesA"),
+    suggestionsBox: document.getElementById("speciesSuggestions"),
+    guessBtn: document.getElementById("guessBtn"),
+    treeContainer: document.getElementById("tree"),
+    autocompleteWrapper: document.querySelector(".autocomplete"),
+    wonText: document.getElementById("won"),
+    guessesText: document.getElementById("guesses"),
+    wikiPanel: document.getElementById("wikiPanel"),
+    wikiTitle: document.getElementById("wikiTitle"),
+    wikiImg: document.getElementById("wikiImg"),
+    wikiExtract: document.getElementById("wikiExtract"),
+    wikiLink: document.getElementById("wikiLink"),
+    resultText: document.getElementById("comparisonResult")
 
 };
 
@@ -89,7 +88,6 @@ const dom = {
 ========================= */
 
 gameState.secretKey = getRandomSpeciesKey();
-dom.secretText.textContent = gameState.secretKey;
 dom.guessesText.textContent = gameState.guessesLeft;
 
 /* =========================
@@ -97,92 +95,105 @@ dom.guessesText.textContent = gameState.guessesLeft;
 ========================= */
 
 dom.input.addEventListener("input", () => {
-  const typed = dom.input.value.trim().toLowerCase();
+    const typed = dom.input.value.trim().toLowerCase();
 
-  dom.input.dataset.selectedKey = "";
+    dom.input.dataset.selectedKey = "";
 
-  if (typed === "") {
-    hideSuggestions();
-    return;
-  }
+    if (typed === "") {
+        hideSuggestions();
+        return;
+    }
 
-  const matches = getNameMatches(typed, gameState.speciesIndex);
-  renderSuggestions(matches);
+    const matches = getNameMatches(typed, gameState.speciesIndex);
+    renderSuggestions(matches);
 });
 
 dom.guessBtn.addEventListener("click", () => {
-    if(gameState.over){
+    if (gameState.over) {
         dom.wonText.textContent = "The game is over";
         return;
     }
-  const guessKey = resolveGuessKey();
+    const guessKey = resolveGuessKey();
 
-  if (!guessKey || !Metazoa[guessKey]) {
-    dom.resultText.textContent = "Species not found.";
-    return;
-  }
+    if (!guessKey || !Metazoa[guessKey]) {
+        dom.resultText.textContent = "Species not found.";
+        return;
+    }
 
-  gameState.lastGuessKey = guessKey;
-  gameState.lastCommonCladeId = findCommonClade(guessKey, gameState.secretKey);
+    gameState.lastGuessKey = guessKey;
+    gameState.lastCommonCladeId = findCommonClade(guessKey, gameState.secretKey);
 
-  dom.resultText.textContent = `Common clade: ${gameState.lastCommonCladeId ?? "None"}`;
+    dom.resultText.textContent = `Common clade: ${gameState.lastCommonCladeId ?? "None"}`;
 
-  updateGameTreeWithGuess(guessKey);
+    updateGameTreeWithGuess(guessKey);
 
-  renderTree(gameState.root, gameState);
+    renderTree(gameState.root, gameState);
+
+    dom.input.value = "";
+    dom.input.dataset.selectedKey = "";
+    hideSuggestions();
+    dom.input.focus();
+
+});
+dom.input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        dom.guessBtn.click();
+    }
 });
 
+
 document.addEventListener("click", (e) => {
-  if (!dom.autocompleteWrapper.contains(e.target)) {
-    hideSuggestions();
-  }
+    if (!dom.autocompleteWrapper.contains(e.target)) {
+        hideSuggestions();
+    }
 });
 
 function getNameMatches(typedLower, speciesIndex) {
-  return speciesIndex
-    .filter((s) => s.nameLower.startsWith(typedLower))
-    .slice(0, 12);
+    return speciesIndex
+        .filter((s) => s.nameLower.startsWith(typedLower))
+        .slice(0, 12);
 }
 
 function renderSuggestions(matches) {
-  dom.suggestionsBox.innerHTML = "";
+    dom.suggestionsBox.innerHTML = "";
 
-  if (matches.length === 0) {
-    hideSuggestions();
-    return;
-  }
+    if (matches.length === 0) {
+        hideSuggestions();
+        return;
+    }
 
-  for (const species of matches) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "suggestion-item";
-    btn.textContent = species.name;
+    for (const species of matches) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "suggestion-item";
+        btn.textContent = species.name;
 
-    btn.addEventListener("click", () => selectSuggestion(species));
-    dom.suggestionsBox.appendChild(btn);
-  }
+        btn.addEventListener("click", () => selectSuggestion(species));
+        dom.suggestionsBox.appendChild(btn);
+    }
 
-  dom.suggestionsBox.style.display = "block";
+    dom.suggestionsBox.style.display = "block";
 }
 
 function selectSuggestion(species) {
-  dom.input.value = species.name;
-  dom.input.dataset.selectedKey = species.key;
-  hideSuggestions();
+    dom.input.value = species.name;
+    dom.input.dataset.selectedKey = species.key;
+    hideSuggestions();
 }
 
 function hideSuggestions() {
-  dom.suggestionsBox.style.display = "none";
-  dom.suggestionsBox.innerHTML = "";
+    dom.suggestionsBox.style.display = "none";
+    dom.suggestionsBox.innerHTML = "";
 }
 
 function resolveGuessKey() {
-  const selectedKey = dom.input.dataset.selectedKey;
-  if (selectedKey) return selectedKey;
+    const selectedKey = dom.input.dataset.selectedKey;
+    if (selectedKey) return selectedKey;
 
-  const typed = dom.input.value.trim().toLowerCase();
-  const match = gameState.speciesIndex.find((s) => s.nameLower === typed);
-  return match ? match.key : null;
+    const typed = dom.input.value.trim().toLowerCase();
+    const match = gameState.speciesIndex.find((s) => s.nameLower === typed);
+    return match ? match.key : null;
 }
 
 /* =========================
@@ -190,48 +201,47 @@ function resolveGuessKey() {
 ========================= */
 
 function updateGameTreeWithGuess(guessKey) {
-  const pathTopDown = [...Metazoa[guessKey].cladeList].reverse();
+    const pathTopDown = [...Metazoa[guessKey].cladeList].reverse();
 
-  insertPathIntoTree(gameState.root, pathTopDown);
+    insertPathIntoTree(gameState.root, pathTopDown);
 }
 
 function insertPathIntoTree(rootNode, pathTopDown) {
-  let current = rootNode;
+    let current = rootNode;
 
 
-  let startIndex = 0;
-  if (pathTopDown[0] === current.id) startIndex = 1;
+    let startIndex = 0;
+    if (pathTopDown[0] === current.id) startIndex = 1;
 
-  for (let i = startIndex; i < pathTopDown.length; i++) {
-    const nextId = pathTopDown[i];
-    
-    
-    let child = current.children.find((c) => c.id === nextId);
-    if (!child) {
-      child = {
-        id: nextId,
-        level: current.level + 1,
-        children: [],
-      };
-      current.children.push(child);
-    }
-    current = child;
-    if(current.id == gameState.lastCommonCladeId && current.level > gameState.bestCommonLevel){
-        if(gameState.secretParent)
-        {
-            gameState.secretParent.children = gameState.secretParent.children.filter(
-        c => c.id !== "Secret");
+    for (let i = startIndex; i < pathTopDown.length; i++) {
+        const nextId = pathTopDown[i];
+
+
+        let child = current.children.find((c) => c.id === nextId);
+        if (!child) {
+            child = {
+                id: nextId,
+                level: current.level + 1,
+                children: [],
+            };
+            current.children.push(child);
         }
-        
-        gameState.secretParent = current;
-    
-        gameState.secretMarker.level = current.level + 1;
-        gameState.bestCommonLevel = current.level;
-        current.children.push(gameState.secretMarker)
-    }
-  }
+        current = child;
+        if (current.id == gameState.lastCommonCladeId && current.level > gameState.bestCommonLevel) {
+            if (gameState.secretParent) {
+                gameState.secretParent.children = gameState.secretParent.children.filter(
+                    c => c.id !== "Secret");
+            }
 
-  return current;
+            gameState.secretParent = current;
+
+            gameState.secretMarker.level = current.level + 1;
+            gameState.bestCommonLevel = current.level;
+            current.children.push(gameState.secretMarker)
+        }
+    }
+
+    return current;
 }
 
 /* =========================
@@ -239,27 +249,117 @@ function insertPathIntoTree(rootNode, pathTopDown) {
 ========================= */
 
 function renderTree(rootNode, gameState) {
-  dom.treeContainer.innerHTML = "";
-  if(checkIfCorrectAnswer(gameState)){
-    gameState.secretParent.children = gameState.secretParent.children.filter(
-        c => c.id !== "Secret");
-    dom.wonText.textContent =
-    `You got it! The correct answer was: ${Metazoa[gameState.secretKey].name}`;
-    gameState.over = true;
 
-  }
+    if (checkIfCorrectAnswer(gameState)) {
+        if (gameState.secretParent) {
+            gameState.secretParent.children =
+                gameState.secretParent.children.filter(c => c.id !== "Secret");
+        }
+        dom.wonText.textContent =
+            `You got it! The correct answer was: ${Metazoa[gameState.secretKey].name}`;
+        gameState.over = true;
+
+    }
     gameState.guessesLeft--;
     dom.guessesText.textContent = gameState.guessesLeft;
-    if (gameState.guessesLeft < 1) 
-        {
-            dom.wonText.textContent =
-    `Failed! You used all of your guesses. The correct answer was: ${Metazoa[gameState.secretKey].name}`;
-            gameState.over = true;
-        }
+    if (gameState.guessesLeft < 1) {
+        dom.wonText.textContent =
+            `Failed! You used all of your guesses. The correct answer was: ${Metazoa[gameState.secretKey].name}`;
+        gameState.over = true;
+    }
 
-  renderNodeRecursive(rootNode, 0);
+    renderTreeD3(rootNode);
+}
+function renderTreeD3(rootNode) {
+    console.log("renderTreeD3 called", rootNode);
+
+
+    const svgEl = document.getElementById("treeSvg");
+    const width = svgEl.clientWidth || 1200;
+    const height = svgEl.clientHeight || 600;
+
+    const svg = d3.select(svgEl);
+    svg.selectAll("*").remove();
+
+    const margin = { top: 30, right: 30, bottom: 30, left: 60 };
+
+    const gZoom = svg.append("g");
+
+    const g = gZoom.append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const root = d3.hierarchy(rootNode, d => d.children);
+
+    const treeLayout = d3.tree().nodeSize([30, 140]);
+    treeLayout(root);
+    const maxDepth = d3.max(root.descendants(), d => d.depth) || 1;
+
+
+    g.selectAll("path.link")
+        .data(root.links())
+        .enter()
+        .append("path")
+        .attr("class", "link")
+        .attr("fill", "none")
+        .attr("stroke", "#8A8E75")
+        .attr("stroke-width", 2)
+        .attr("d", d3.linkHorizontal()
+            .x(d => d.y)
+            .y(d => d.x)
+        );
+
+
+    const node = g.selectAll("g.node")
+        .data(root.descendants())
+        .enter()
+        .append("g")
+        .attr("class", "node")
+        .attr("transform", d => `translate(${d.y},${d.x})`);
+
+    node.append("circle")
+        .attr("r", d => d.data.id === "Secret" ? 10 : 7)
+        .attr("fill", d => {
+            if (d.data.id === "Secret") return "#8A8E75";
+
+            const t = d.depth / maxDepth;
+
+            if (t < 0.25) return "#68604D";
+            if (t < 0.5) return "#8A8E75";
+            if (t < 0.75) return "#BEC5A4";
+            return "#D5C7AD";
+        })
+        .attr("stroke", d => d.data.id === "Secret" ? "#68604D" : "#444")
+        .attr("stroke-width", 2)
+        .on("mouseenter", (event, d) => showWikiForNode(d.data.id));
+
+
+
+    node.append("text")
+        .attr("text-anchor", "middle")
+        .attr("y", -14)
+        .attr("font-size", d => d.data.id === "Secret" ? 18 : 12)
+        .attr("font-weight", d => d.data.id === "Secret" ? "800" : "500")
+        .attr("fill", d => d.data.id === "Secret" ? "#68604D" : "#2b2720")
+        .attr("stroke", d => d.data.id === "Secret" ? "white" : "none")
+        .attr("stroke-width", d => d.data.id === "Secret" ? 4 : 0)
+        .attr("paint-order", "stroke")
+        .text(d => d.data.id)
+        .on("mouseenter", (event, d) => showWikiForNode(d.data.id));
+
+
+
+    const zoom = d3.zoom()
+        .scaleExtent([0.3, 4])
+        .on("zoom", (event) => {
+            gZoom.attr("transform", event.transform);
+        });
+
+    svg.call(zoom);
+
 }
 
+
+/*
 function renderNodeRecursive(node, depth) {
   const line = document.createElement("div");
   line.style.marginLeft = `${depth * 20}px`;
@@ -276,12 +376,14 @@ function renderNodeRecursive(node, depth) {
   }
 }
 
+FUNCAO ANTIGA 
+*/
 /* =========================
    Game functions
 ========================= */
 
-function checkIfCorrectAnswer(gameState){
-    if(gameState.lastGuessKey == gameState.secretKey)
+function checkIfCorrectAnswer(gameState) {
+    if (gameState.lastGuessKey == gameState.secretKey)
         return true;
     else
         return false;
@@ -291,70 +393,70 @@ function checkIfCorrectAnswer(gameState){
     Wiki
 ==========================*/
 async function showWikiForNode(nodeId) {
-  gameState.wiki.currentId = nodeId;
+    gameState.wiki.currentId = nodeId;
 
-  const url = Wiki[nodeId];
-  if (!url) {
+    const url = Wiki[nodeId];
+    if (!url) {
+        dom.wikiTitle.textContent = nodeId;
+        dom.wikiExtract.textContent = "No Wikipedia link for this node yet.";
+        dom.wikiImg.style.display = "none";
+        dom.wikiLink.style.display = "none";
+        return;
+    }
+
+    const cached = gameState.wiki.cache.get(nodeId);
+    if (cached) {
+        renderWikiPanel(nodeId, cached);
+        return;
+    }
+
+    const titleSlug = getWikiTitleFromUrl(url);
+    if (!titleSlug) return;
+
     dom.wikiTitle.textContent = nodeId;
-    dom.wikiExtract.textContent = "No Wikipedia link for this node yet.";
+    dom.wikiExtract.textContent = "Loading...";
     dom.wikiImg.style.display = "none";
     dom.wikiLink.style.display = "none";
-    return;
-  }
 
-  const cached = gameState.wiki.cache.get(nodeId);
-  if (cached) {
-    renderWikiPanel(nodeId, cached);
-    return;
-  }
+    const apiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${titleSlug}`;
+    const resp = await fetch(apiUrl);
+    if (!resp.ok) {
+        dom.wikiExtract.textContent = "Failed to load Wikipedia summary.";
+        return;
+    }
 
-  const titleSlug = getWikiTitleFromUrl(url);
-  if (!titleSlug) return;
+    const data = await resp.json();
 
-  dom.wikiTitle.textContent = nodeId;
-  dom.wikiExtract.textContent = "Loading...";
-  dom.wikiImg.style.display = "none";
-  dom.wikiLink.style.display = "none";
+    const info = {
+        extract: data.extract ?? "",
+        thumbnail: data.thumbnail?.source ?? null,
+        pageUrl: data.content_urls?.desktop?.page ?? url,
+    };
 
-  const apiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${titleSlug}`;
-  const resp = await fetch(apiUrl);
-  if (!resp.ok) {
-    dom.wikiExtract.textContent = "Failed to load Wikipedia summary.";
-    return;
-  }
+    gameState.wiki.cache.set(nodeId, info);
 
-  const data = await resp.json();
+    if (gameState.wiki.currentId !== nodeId) return;
 
-  const info = {
-    extract: data.extract ?? "",
-    thumbnail: data.thumbnail?.source ?? null,
-    pageUrl: data.content_urls?.desktop?.page ?? url,
-  };
-
-  gameState.wiki.cache.set(nodeId, info);
-
-  if (gameState.wiki.currentId !== nodeId) return;
-
-  renderWikiPanel(nodeId, info);
+    renderWikiPanel(nodeId, info);
 }
 function renderWikiPanel(nodeId, info) {
-  dom.wikiTitle.textContent = nodeId;
-  dom.wikiExtract.textContent = info.extract || "No summary available.";
+    dom.wikiTitle.textContent = nodeId;
+    dom.wikiExtract.textContent = info.extract || "No summary available.";
 
-  if (info.thumbnail) {
-    dom.wikiImg.src = info.thumbnail;
-    dom.wikiImg.style.display = "block";
-  } else {
-    dom.wikiImg.style.display = "none";
-  }
+    if (info.thumbnail) {
+        dom.wikiImg.src = info.thumbnail;
+        dom.wikiImg.style.display = "block";
+    } else {
+        dom.wikiImg.style.display = "none";
+    }
 
-  dom.wikiLink.href = info.pageUrl;
-  dom.wikiLink.style.display = "inline-block";
+    dom.wikiLink.href = info.pageUrl;
+    dom.wikiLink.style.display = "inline-block";
 }
 
 
 function getWikiTitleFromUrl(url) {
-  const idx = url.indexOf("/wiki/");
-  if (idx === -1) return null;
-  return url.slice(idx + "/wiki/".length);
+    const idx = url.indexOf("/wiki/");
+    if (idx === -1) return null;
+    return url.slice(idx + "/wiki/".length);
 }
