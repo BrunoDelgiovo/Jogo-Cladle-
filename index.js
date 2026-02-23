@@ -89,6 +89,7 @@ const dom = {
 
 gameState.secretKey = getRandomSpeciesKey();
 dom.guessesText.textContent = gameState.guessesLeft;
+dom.resultText.textContent = "Try to discover the secret species by guessing others and looking at what they have in common!";
 
 /* =========================
    Autocomplete
@@ -260,103 +261,141 @@ function renderTree(rootNode, gameState) {
         gameState.over = true;
 
     }
-    gameState.guessesLeft--;
+    
     dom.guessesText.textContent = gameState.guessesLeft;
     if (gameState.guessesLeft < 1) {
         dom.wonText.textContent =
             `Failed! You used all of your guesses. The correct answer was: ${Metazoa[gameState.secretKey].name}`;
         gameState.over = true;
     }
+    gameState.guessesLeft--;
 
     renderTreeD3(rootNode);
 }
 function renderTreeD3(rootNode) {
-    console.log("renderTreeD3 called", rootNode);
+  console.log("renderTreeD3 called", rootNode);
 
+  const svgEl = document.getElementById("treeSvg");
+  const width = svgEl.clientWidth || 1200;
+  const height = svgEl.clientHeight || 600;
 
-    const svgEl = document.getElementById("treeSvg");
-    const width = svgEl.clientWidth || 1200;
-    const height = svgEl.clientHeight || 600;
+  const svg = d3.select(svgEl);
+  svg.selectAll("*").remove();
 
-    const svg = d3.select(svgEl);
-    svg.selectAll("*").remove();
+  const margin = { top: 30, right: 30, bottom: 30, left: 60 };
 
-    const margin = { top: 30, right: 30, bottom: 30, left: 60 };
+  const gZoom = svg.append("g");
 
-    const gZoom = svg.append("g");
+  const g = gZoom.append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    const g = gZoom.append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+  const root = d3.hierarchy(rootNode, d => d.children);
 
-    const root = d3.hierarchy(rootNode, d => d.children);
+  const treeLayout = d3.tree().nodeSize([100, 140]);
+  treeLayout(root);
 
-    const treeLayout = d3.tree().nodeSize([30, 140]);
-    treeLayout(root);
-    const maxDepth = d3.max(root.descendants(), d => d.depth) || 1;
+  const maxDepth = d3.max(root.descendants(), d => d.depth) || 1;
 
+  /* =========================
+     LINKS
+  ========================= */
 
-    g.selectAll("path.link")
-        .data(root.links())
-        .enter()
-        .append("path")
-        .attr("class", "link")
-        .attr("fill", "none")
-        .attr("stroke", "#8A8E75")
-        .attr("stroke-width", 2)
-        .attr("d", d3.linkHorizontal()
-            .x(d => d.y)
-            .y(d => d.x)
-        );
+  g.selectAll("path.link")
+    .data(root.links())
+    .enter()
+    .append("path")
+    .attr("class", "link")
+    .attr("fill", "none")
+    .attr("stroke", "#2F7D32")     // verde forte
+    .attr("stroke-width", 2)
+    .attr("d", d3.linkHorizontal()
+      .x(d => d.y)
+      .y(d => d.x)
+    );
 
+  /* =========================
+     NODES
+  ========================= */
 
-    const node = g.selectAll("g.node")
-        .data(root.descendants())
-        .enter()
-        .append("g")
-        .attr("class", "node")
-        .attr("transform", d => `translate(${d.y},${d.x})`);
+  const node = g.selectAll("g.node")
+    .data(root.descendants())
+    .enter()
+    .append("g")
+    .attr("class", "node")
+    .attr("transform", d => `translate(${d.y},${d.x})`);
 
-    node.append("circle")
-        .attr("r", d => d.data.id === "Secret" ? 10 : 7)
-        .attr("fill", d => {
-            if (d.data.id === "Secret") return "#8A8E75";
+  /* CÍRCULOS */
 
-            const t = d.depth / maxDepth;
+  node.append("circle")
+    .attr("r", d => {
+      if (d.data.id === "Metazoa") return 22;
+      if (d.data.id === "Secret") return 12;
+      return 7;
+    })
+    .attr("fill", d => {
+      if (d.data.id === "Metazoa") return "#4CAF50";   
+      if (d.data.id === "Secret") return "#E53935";   
 
-            if (t < 0.25) return "#68604D";
-            if (t < 0.5) return "#8A8E75";
-            if (t < 0.75) return "#BEC5A4";
-            return "#D5C7AD";
-        })
-        .attr("stroke", d => d.data.id === "Secret" ? "#68604D" : "#444")
-        .attr("stroke-width", 2)
-        .on("mouseenter", (event, d) => showWikiForNode(d.data.id));
+      const t = d.depth / maxDepth;
+      if (t < 0.25) return "#2F7D32";
+      if (t < 0.5) return "#4CAF50";
+      if (t < 0.75) return "#8BC34A";
+      return "#FFB300";
+    })
+    .attr("stroke", d => {
+      if (d.data.id === "Metazoa") return "#1B5E20";
+      if (d.data.id === "Secret") return "#7F0000";
+      return "#1F1B16";
+    })
+    .attr("stroke-width", d =>
+      (d.data.id === "Metazoa" || d.data.id === "Secret") ? 4 : 2
+    )
+    .on("mouseenter", (event, d) => showWikiForNode(d.data.id));
 
+  /* TEXTO */
 
+  node.append("text")
+    .attr("text-anchor", "middle")
+    .attr("y", d => (d.data.id === "Metazoa") ? -26 : -14)
+    .attr("font-size", d => {
+      if (d.data.id === "Metazoa") return 28;
+      if (d.data.id === "Secret") return 34;
+      return 14;
+    })
+    .attr("font-weight", d => {
+      if (d.data.id === "Metazoa") return "800";
+      if (d.data.id === "Secret") return "900";
+      return "600";
+    })
+    .attr("fill", d => {
+      if (d.data.id === "Metazoa") return "#4CAF50";   
+      if (d.data.id === "Secret") return "#E53935";   
+      return "#F1E9DA";                             
+    })
+    .attr("stroke", d => {
+      if (d.data.id === "Secret") return "#000";
+      return "none";
+    })
+    .attr("stroke-width", d =>
+      d.data.id === "Secret" ? 3 : 0
+    )
+    .attr("paint-order", "stroke")
+    .text(d => d.data.id)
+    .on("mouseenter", (event, d) => showWikiForNode(d.data.id));
 
-    node.append("text")
-        .attr("text-anchor", "middle")
-        .attr("y", -14)
-        .attr("font-size", d => d.data.id === "Secret" ? 18 : 12)
-        .attr("font-weight", d => d.data.id === "Secret" ? "800" : "500")
-        .attr("fill", d => d.data.id === "Secret" ? "#68604D" : "#2b2720")
-        .attr("stroke", d => d.data.id === "Secret" ? "white" : "none")
-        .attr("stroke-width", d => d.data.id === "Secret" ? 4 : 0)
-        .attr("paint-order", "stroke")
-        .text(d => d.data.id)
-        .on("mouseenter", (event, d) => showWikiForNode(d.data.id));
+  /* =========================
+     ZOOM
+  ========================= */
 
+  const zoom = d3.zoom()
+    .scaleExtent([0.3, 4])
+    .on("zoom", (event) => {
+      gZoom.attr("transform", event.transform);
+    });
 
-
-    const zoom = d3.zoom()
-        .scaleExtent([0.3, 4])
-        .on("zoom", (event) => {
-            gZoom.attr("transform", event.transform);
-        });
-
-    svg.call(zoom);
-
+  svg.call(zoom);
 }
+
 
 
 /*
